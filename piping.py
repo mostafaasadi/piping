@@ -1,7 +1,7 @@
 import RPi.GPIO as GPIO ## Import GPIO library
 import subprocess,time,requests,plotly
 import plotly.graph_objs as go
-# from datetime import datetime TODO 
+# from datetime import datetime TODO
 
 # coding=utf-8
 
@@ -22,7 +22,7 @@ GPIO.setwarnings(False)
 hostname = '8.8.8.8'
 local = '10.0.0.1'
 condition = '145'
-testserver = 'http://137.74.154.122/c/index.html'
+testserver = 'http://icanhazip.com'
 
 # variable
 yplot = []
