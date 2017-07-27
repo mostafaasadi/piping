@@ -21,7 +21,7 @@ GPIO.setwarnings(False)
 ## or just static value
 hostname = '8.8.8.8'
 local = '10.0.0.1'
-condition = '145'
+condition = '150'
 testserver = 'http://icanhazip.com'
 
 # variable
@@ -29,6 +29,7 @@ yplot = []
 xplot = []
 lpp = []
 n = 0
+cplot = [condition]
 
 # main ping function
 def check_ping(hostname):
@@ -60,7 +61,7 @@ GPIO.setup(10, GPIO.OUT) # Setup GPIO Pin 10 to OUT , Blue LED
 # main loop
 while True:
     # sleep between each ping
-    time.sleep(0.5)
+    time.sleep(10)
 
     # loop counter
     n += 1
@@ -125,7 +126,7 @@ while True:
 
             # send server ping for plot
             yplot.append(int(pingtimenum))
-
+            cplot.append(condition)
         # creat plot every 10 ping
         if n%10 == 0 :
             # local ping plot
@@ -142,14 +143,26 @@ while True:
                 mode = 'lines+markers',
                 name = hostname
             )
-            plotdata = [localplot,serverplot]
+            # condition plot
+            conditionplot = go.Scatter(
+                x = xplot,
+                y = cplot,
+                mode = 'lines',
+                name = 'condition'
+            )
+            plotdata = [localplot,serverplot,conditionplot]
             plotlayout = dict(title = 'Ping Graph')
             plotinput = dict(data=plotdata, layout=plotlayout)
 
             # drow plot
-            plot = plotly.offline.plot(plotinput, filename='ping-graph.html',auto_open=False)
+            plot = plotly.offline.plot(plotinput,filename='ping-graph.html',auto_open=False)
             print('plot: ' + plot)
 
+            if n%8000 == 0 :
+                yplot = []
+                xplot = []
+                lpp = []
+                n = 0
 
     # internet connection is not reachable
     else:
