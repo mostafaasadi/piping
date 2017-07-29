@@ -1,7 +1,7 @@
 import RPi.GPIO as GPIO ## Import GPIO library
 import subprocess,time,requests,plotly
 import plotly.graph_objs as go
-# from datetime import datetime TODO
+from datetime import datetime
 
 # coding=utf-8
 
@@ -23,6 +23,10 @@ hostname = '8.8.8.8'
 local = '10.0.0.1'
 condition = '150'
 testserver = 'http://icanhazip.com'
+sleeptime = 1 #int not string
+reset = 8000
+plottime = 10
+
 
 # variable
 yplot = []
@@ -61,12 +65,15 @@ GPIO.setup(10, GPIO.OUT) # Setup GPIO Pin 10 to OUT , Blue LED
 # main loop
 while True:
     # sleep between each ping
-    time.sleep(10)
+    time.sleep(sleeptime)
 
     # loop counter
     n += 1
-    # send ping number to x list for plot
-    xplot.append(n)
+
+    # now time
+    t = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    # send ping time to x list for plot
+    xplot.append(t)
 
     # ping local router
     localpingtimenum = check_ping(local)
@@ -126,47 +133,10 @@ while True:
 
             # send server ping for plot
             yplot.append(int(pingtimenum))
-            cplot.append(condition)
-        # creat plot every 10 ping
-        if n%10 == 0 :
-            # local ping plot
-            localplot = go.Scatter(
-                x = xplot,
-                y = lpp,
-                mode = 'lines+markers',
-                name = 'local ping'
-            )
-            # server ping plot
-            serverplot = go.Scatter(
-                x = xplot,
-                y = yplot,
-                mode = 'lines+markers',
-                name = hostname
-            )
-            # condition plot
-            conditionplot = go.Scatter(
-                x = xplot,
-                y = cplot,
-                mode = 'lines',
-                name = 'condition'
-            )
-            plotdata = [localplot,serverplot,conditionplot]
-            plotlayout = dict(title = 'Ping Graph')
-            plotinput = dict(data=plotdata, layout=plotlayout)
-
-            # drow plot
-            plot = plotly.offline.plot(plotinput,filename='ping-graph.html',auto_open=False)
-            print('plot: ' + plot)
-
-            if n%8000 == 0 :
-                yplot = []
-                xplot = []
-                lpp = []
-                n = 0
 
     # internet connection is not reachable
     else:
-        print('unreachable')
+        print('internet is not reachable')
         GPIO.output(3,True)
         time.sleep(0.3)
         GPIO.output(3,False)
@@ -174,3 +144,42 @@ while True:
         GPIO.output(3,True)
         time.sleep(0.3)
         GPIO.output(3,False)
+
+    cplot.append(condition)
+
+    # creat plot every 10 ping
+    if n%plottime == 0 :
+        # local ping plot
+        localplot = go.Scatter(
+            x = xplot,
+            y = lpp,
+            mode = 'lines+markers',
+            name = 'local ping'
+        )
+        # server ping plot
+        serverplot = go.Scatter(
+            x = xplot,
+            y = yplot,
+            mode = 'lines+markers',
+            name = hostname
+        )
+        # condition plot
+        conditionplot = go.Scatter(
+            x = xplot,
+            y = cplot,
+            mode = 'lines',
+            name = 'condition'
+        )
+        plotdata = [localplot,serverplot,conditionplot]
+        plotlayout = dict(title = 'Ping Graph')
+        plotinput = dict(data=plotdata, layout=plotlayout)
+
+        # drow plot
+        plot = plotly.offline.plot(plotinput,filename='ping-graph.html',auto_open=False)
+        print('plot: ' + plot)
+
+        if n%reset == 0 :
+            yplot = []
+            xplot = []
+            lpp = []
+            n = 0
