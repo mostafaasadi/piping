@@ -136,6 +136,7 @@ while True:
 
     # internet connection is not reachable
     else:
+        yplot.append(None)
         print('internet is not reachable')
         GPIO.output(3,True)
         time.sleep(0.3)
@@ -144,6 +145,7 @@ while True:
         GPIO.output(3,True)
         time.sleep(0.3)
         GPIO.output(3,False)
+
 
     cplot.append(condition)
 
