@@ -14,10 +14,10 @@ piping drow plot and blink (3color) LED on raspberrypi.
 
 # config
 for change in servers(add/remove/edite) edite line 25-32
-``` name = servers('server name',
+`` name = servers('server name',
 'ip',
 'ping in offline/online',
-'enable GPIO (on raspberrypi) check with condition True/False (recommand : enable for one online server)') ```
+'enable GPIO (on raspberrypi) check with condition True/False (recommand : enable for one online server)') ``
 and other config (line 34-43)
 
 ## GPIO mode 
