@@ -1,187 +1,166 @@
-import RPi.GPIO as GPIO ## Import GPIO library
-import subprocess,time,requests,plotly
+# coding=utf-8
+
+import subprocess
+import requests
+import plotly
+import time
 import plotly.graph_objs as go
 from datetime import datetime
 
-# coding=utf-8
 
-# Use board pin numbering
-GPIO.setmode(GPIO.BOARD)
-
-#set warning
-GPIO.setwarnings(False)
+serverslist = []
 
 
-## you can use input
-# hostname = input('hostname: ')
-# local = input('local: ')
-# condition = input('condition: ')
-# testserver = input('test server: ')
+class servers:
 
-## or just static value
-hostname = '8.8.8.8'
-local = '10.0.0.1'
-condition = '150'
-testserver = 'http://icanhazip.com'
-sleeptime = 1 #int not string
-reset = 8000
-plottime = 10
+    def __init__(self, name, ip, type, gpio):
+        self.name = name
+        self.ip = ip
+        self.type = type
+        self.gpio = gpio
+        self.ping = []
+        serverslist.append(self)
 
 
-# variable
-yplot = []
-xplot = []
-lpp = []
-n = 0
-cplot = [condition]
+# server config
+# name = servers('server name', 'ip', 'ping in offline/online',
+# 'enable GPIO (on raspberrypi) check with condition True/False')
+google = servers('Google', '8.8.8.8', 'online', True)
+modem = servers('DSL', '192.168.1.1', 'offline', False)
+router = servers('mikrotik', '10.0.0.1', 'offline', False)
+verizon = servers('Verizon', '4.2.2.4', 'online', False)
+
+
+# config
+condition = 150  # condition to comparison
+net_status_server = 'http://icanhazip.com'  # check conection  to net
+sleeptime = 1  # sleep between each ping (second)
+reset = 5000   # reset data plot after this time (Natural numbers)
+plottime = 10  # drow plot after this time (Natural numbers)
+gpiomode = False  # enable on raspberrypi (True/Flase)
+greenpin = 7  # gpio pin conected to Green LED on BOARD mode
+redpin = 3  # gpio pin conected to Red LED on BOARD mode
+bluepin = 10  # gpio pin conected to Blue LED on BOARD mode
+
+
+if gpiomode:
+    import RPi.GPIO as GPIO  # Import GPIO library
+
 
 # main ping function
-def check_ping(hostname):
+def ping(hostname):
     try:
         # ping command
         pingcmd = "ping -c 1 " + hostname + " | tail -1 | awk \'{print $4}\' | cut -d '/' -f 2 "
         # get ping stdout
-        response = subprocess.run(pingcmd,shell=True,stdout=subprocess.PIPE)
-        pingtime = response.stdout.decode('utf-8')
+        response = subprocess.run(pingcmd, shell=True, stdout=subprocess.PIPE)
+        pingresponse = response.stdout.decode('utf-8')
+        pingtime = pingresponse.split('.')[0]
         # get ping time
-        pingtimenum = pingtime.split('.')[0]
-        return pingtimenum
+        if pingtime.isdigit():
+            pingtimenum = int(pingtime)
+            return pingtimenum
+        else:
+            print('Error while pinging!')
+            return None
 
     # Error in pinging
     except:
-        print('Error!')
-        GPIO.output(3,True)
-        time.sleep(0.3)
-        GPIO.output(3,False)
-        time.sleep(0.3)
-        GPIO.output(3,True)
-        time.sleep(0.3)
-        GPIO.output(3,False)
-
-GPIO.setup(7, GPIO.OUT) # Setup GPIO Pin 7 to OUT , Green LED
-GPIO.setup(3, GPIO.OUT) # Setup GPIO Pin 3 to OUT , Red LED
-GPIO.setup(10, GPIO.OUT) # Setup GPIO Pin 10 to OUT , Blue LED
-
-# main loop
-while True:
-    # sleep between each ping
-    time.sleep(sleeptime)
-
-    # loop counter
-    n += 1
-
-    # now time
-    t = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    # send ping time to x list for plot
-    xplot.append(t)
-
-    # ping local router
-    localpingtimenum = check_ping(local)
-    print(local + ' :: ' + localpingtimenum)
-    if localpingtimenum.isdigit():
-        # send local ping to lpp list for plot
-        lpp.append(int(localpingtimenum))
-
-    # blink blue LED if router is available
-    if localpingtimenum :
-        GPIO.output(10,True)
-        time.sleep(0.1)
-        GPIO.output(10,False)
-
-    # blink Red LED if router is not available
-    else :
-        GPIO.output(3,True)
-        time.sleep(0.3)
-        GPIO.output(3,False)
-        time.sleep(0.3)
-        GPIO.output(3,True)
-        time.sleep(0.3)
-        GPIO.output(3,False)
-        print('local is not available')
+        print('Error while pinging!')
+        return None
 
 
-    # sleep between local and server ping
-    time.sleep(0.3)
-
-    # check internet connection
-    try:
-        netstat = requests.get(testserver,timeout=1).status_code
-        if netstat == 200 :
-            status = True
-    except:
-        status = False
-        print('internet is not reachable')
-
-    if status :
-        # check server ping
-        pingtimenum = check_ping(hostname)
-        print(hostname + ' :: ' + pingtimenum)
-
-        if pingtimenum.isdigit():
-            # blink Green LED for low ping
-            if int(pingtimenum) < int(condition) :
-                print("green")
-                GPIO.output(7,True)
-                time.sleep(0.1)
-                GPIO.output(7,False)
-            # blink Red LED for high ping
-            elif int(pingtimenum) > int(condition) :
-                print("red")
-                GPIO.output(3,True)
-                time.sleep(0.1)
-                GPIO.output(3,False)
-
-            # send server ping for plot
-            yplot.append(int(pingtimenum))
-
-    # internet connection is not reachable
-    else:
-        yplot.append(None)
-        print('internet is not reachable')
-        GPIO.output(3,True)
-        time.sleep(0.3)
-        GPIO.output(3,False)
-        time.sleep(0.3)
-        GPIO.output(3,True)
-        time.sleep(0.3)
-        GPIO.output(3,False)
+# check internet connection
+def net_status(net_status_server):
+        # check internet connection
+        try:
+            netstat = requests.get(net_status_server, timeout=1).status_code
+            if netstat == 200:
+                return True
+            else:
+                return False
+                if gpiomode:
+                    blink(redpin, 0.3, 2)
+        except:
+                return False
 
 
-    cplot.append(condition)
+def blink(pin, timeon, number):
+    # Use board pin numbering
+    GPIO.setmode(GPIO.BOARD)
+    # set warning
+    GPIO.setwarnings(False)
+    GPIO.setup(pin, GPIO.OUT)
+    for i in range(0, number):
+        GPIO.output(pin, True)
+        time.sleep(timeon)
+        GPIO.output(pin, False)
+        time.sleep(timeon)
 
-    # creat plot every 10 ping
-    if n%plottime == 0 :
-        # local ping plot
-        localplot = go.Scatter(
-            x = xplot,
-            y = lpp,
-            mode = 'lines+markers',
-            name = 'local ping'
-        )
-        # server ping plot
-        serverplot = go.Scatter(
-            x = xplot,
-            y = yplot,
-            mode = 'lines+markers',
-            name = hostname
-        )
-        # condition plot
-        conditionplot = go.Scatter(
-            x = xplot,
-            y = cplot,
-            mode = 'lines',
-            name = 'condition'
-        )
-        plotdata = [localplot,serverplot,conditionplot]
-        plotlayout = dict(title = 'Ping Graph')
-        plotinput = dict(data=plotdata, layout=plotlayout)
 
-        # drow plot
-        plot = plotly.offline.plot(plotinput,filename='ping-graph.html',auto_open=False)
-        print('plot: ' + plot)
+if __name__ == '__main__':
+    timeplot = []
+    plotdata = []
+    cplot = []
+    n = 0
 
-        if n%reset == 0 :
-            yplot = []
-            xplot = []
-            lpp = []
-            n = 0
+    while True:
+        time.sleep(sleeptime)
+
+        n += 1
+        # send ping time to x list for plot
+        timeplot.append(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
+        cplot.append(condition)
+
+        for server in serverslist:
+            if server.type == 'online':
+                if net_status(net_status_server):
+                    pingnum = ping(server.ip)
+                    server.ping.append(pingnum)
+                    if server.gpio and gpiomode and pingnum:
+                        if pingnum <= condition:
+                            blink(greenpin, 0.3, 1)
+                        elif pingnum > condition:
+                            blink(redpin, 0.3, 1)
+                else:
+                    server.ping.append(None)
+            elif server.type == 'offline':
+                pingnum = ping(server.ip)
+                server.ping.append(pingnum)
+                if gpiomode and pingnum:
+                    blink(bluepin, 0.3, 1)
+
+            else:
+                print('server type Error')
+
+        if n % plottime == 0:
+            plotdata.clear()
+            for server in serverslist:
+                plotdata.append(go.Scatter(
+                    x = timeplot,
+                    y = server.ping,
+                    mode = 'lines+markers',
+                    name = server.name
+                    ))
+            # condition plot
+            conditionplot = go.Scatter(
+                x = timeplot,
+                y = cplot,
+                mode = 'lines',
+                name = 'condition'
+            )
+            plotdata.append(conditionplot)
+            plotlayout = dict(title = 'Ping Graph')
+            plotinput = dict(data=plotdata, layout=plotlayout)
+
+            # drow plot
+            plot = plotly.offline.plot(plotinput, filename='ping-graph.html', auto_open=False)
+            print('plot: ' + plot)
+
+            if n % reset == 0:
+                for server in serverslist:
+                    server.ping.clear()
+                timeplot.clear()
+                cplot.clear()
+                n = 0
