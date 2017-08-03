@@ -1,10 +1,13 @@
-# piping
-ping and plot servers and hosts 
-piping drow plot and blink (3color) LED on raspberrypi.
+# About piping
+This is a Python script which pings your desired IPs and generates a plot, showing target up-time based on received replies.
+The plot is generated as a standard HTML file which is view-able in any standard web browser.
+Furthermore, if you are running this script on RaspberryPi or compatible SBC, it is possible to connect an RGB LED to RPi's GPIO 
+to show server status. For example, LED will be turned Green if the server is up and red if un-accessible. LED colors/blinking is 
+user configurable. 
 
 ![piping](https://raw.githubusercontent.com/mostafaasadi/piping/master/screenshot.png)
 
-# Install
+# Installation
 - `pip3 install plotly`
 - `pip3 install requests`
 - `pip3 install subprocess`
@@ -12,18 +15,22 @@ piping drow plot and blink (3color) LED on raspberrypi.
 - `cd piping`
 - `nohup python3 piping.py &`
 
-# config
-for change in servers(add/remove/edite) edite line 25-32
+# Configuration
+To change IPs (add/remove/edit) line 25-32
 `` name = servers('server name',
 'ip',
 'ping in offline/online',
-'enable GPIO (on raspberrypi) check with condition True/False (recommand : enable for one online server)') ``
-and other config (line 34-43)
+'enable GPIO (on raspberrypi) check with condition True/False (recommanded: enable for IPs outside your LAN)') ``
+and other configurations (line 34-43).
 
-## GPIO mode 
-if you run it on raspberrypi , enable `gpiomode` on line 40 and connect LED acording to this 
+## RaspberryPi GPIO activation
+If you are running piping on RaspberryPi, enable `gpiomode` on line 40. Then connect RGB LED according to this diagram: 
 ![piping](https://raw.githubusercontent.com/mostafaasadi/piping/master/physical-pin-numbers.png)
-and config `redpin`,`greenpin` and `bluepin` in config section
+finally set `redpin`,`greenpin` and `bluepin` in configuration section.
 
-# Usage 
-**piping** creat a plot with name `ping-graph.html` and update it , also on `gpiomode` on raspberrypi it blink LEDs (blue for offline ping , green for less than `condition` , red for more than `condition` and duble red blink for no internet connection)
+# Usage
+**piping** creates the plot as `ping-graph.html` and updates it according to settings. 
+If you are running piping on RaspberryPi or compatible SBC, it is possible to turn on `gpiomode` and blink an RGB LED with user
+configurable setting interactively. Blue color is usually used for IPs of devices in your LAN (e.g. routers).
+Red and Green LEDs could be turned on or blinked using multiple conditions. Please refer to the comments in configuration section
+for more information.
