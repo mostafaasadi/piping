@@ -4,9 +4,11 @@ import subprocess
 import requests
 import plotly
 import time
+import http.server
+import socketserver
+import threading
 import plotly.graph_objs as go
 from datetime import datetime
-
 
 serverslist = []
 
@@ -37,6 +39,8 @@ net_status_server = 'http://icanhazip.com'  # check conection  to net
 sleeptime = 1  # sleep between each ping (second)
 reset = 5000   # reset data plot after this time (Natural numbers)
 plottime = 10  # drow plot after this time (Natural numbers)
+http_server = True  # enable/disable web server
+http_port = 8000  # http port
 gpiomode = False  # enable on raspberrypi (True/Flase)
 greenpin = 7  # gpio pin conected to Green LED on BOARD mode
 redpin = 3  # gpio pin conected to Red LED on BOARD mode
@@ -98,11 +102,25 @@ def blink(pin, timeon, number):
         time.sleep(timeon)
 
 
+class HttpThread(threading.Thread):
+
+    def run(self):
+        httpd = socketserver.TCPServer(("", http_port), Handler)
+        httpd.serve_forever()
+
+
 if __name__ == '__main__':
     timeplot = []
     plotdata = []
     cplot = []
     n = 0
+
+    if http_server:
+        # add http handler
+        Handler = http.server.SimpleHTTPRequestHandler
+        # run http server on port
+        HttpThread().start()
+        print('see plot on http://localhost:' + str(http_port))
 
     while True:
         time.sleep(sleeptime)
@@ -125,6 +143,8 @@ if __name__ == '__main__':
                             blink(redpin, 0.3, 1)
                 else:
                     server.ping.append(None)
+                    if gpiomode:
+                        blink(redpin, 0.5, 2)
             elif server.type == 'offline':
                 pingnum = ping(server.ip)
                 server.ping.append(pingnum)
@@ -138,24 +158,24 @@ if __name__ == '__main__':
             plotdata.clear()
             for server in serverslist:
                 plotdata.append(go.Scatter(
-                    x = timeplot,
-                    y = server.ping,
-                    mode = 'lines+markers',
-                    name = server.name
+                    x=timeplot,
+                    y=server.ping,
+                    mode='lines+markers',
+                    name=server.name
                     ))
             # condition plot
             conditionplot = go.Scatter(
-                x = timeplot,
-                y = cplot,
-                mode = 'lines',
-                name = 'condition'
+                x=timeplot,
+                y=cplot,
+                mode='lines',
+                name='condition'
             )
             plotdata.append(conditionplot)
-            plotlayout = dict(title = 'Ping Graph')
+            plotlayout = dict(title='Ping Graph')
             plotinput = dict(data=plotdata, layout=plotlayout)
 
             # drow plot
-            plot = plotly.offline.plot(plotinput, filename='ping-graph.html', auto_open=False)
+            plot = plotly.offline.plot(plotinput, filename='index.html', auto_open=False)
             print('plot: ' + plot)
 
             if n % reset == 0:
