@@ -1,5 +1,6 @@
 # coding=utf-8
 
+import os
 import subprocess
 import requests
 import plotly
@@ -11,6 +12,7 @@ import plotly.graph_objs as go
 from datetime import datetime
 
 serverslist = []
+os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
 
 class servers:
