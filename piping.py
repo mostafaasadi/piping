@@ -10,46 +10,28 @@ import socketserver
 import threading
 import plotly.graph_objs as go
 from datetime import datetime
+from config import *
 
-serverslist = []
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
 
-class servers:
-
-    def __init__(self, name, ip, type, gpio):
-        self.name = name
-        self.ip = ip
-        self.type = type
-        self.gpio = gpio
-        self.ping = []
-        serverslist.append(self)
-
-
-# server config
-# name = servers('server name', 'ip', 'ping in offline/online',
-# 'enable GPIO (on raspberrypi) check with condition True/False')
-google = servers('Google', '8.8.8.8', 'online', True)
-modem = servers('DSL', '192.168.1.1', 'offline', False)
-router = servers('mikrotik', '10.0.0.1', 'offline', False)
-verizon = servers('Verizon', '4.2.2.4', 'online', False)
+# write to file function
+def filewrite(filename, mode, string):
+    try:
+        f = open(filename, mode)
+        f.write(str(string))
+        f.close()
+    except Exception as e:
+        filewrite(filename, 'a', 'Error: File write' + e)
 
 
-# config
-condition = 150  # condition to comparison
-net_status_server = 'http://icanhazip.com'  # check conection  to net
-sleeptime = 1  # sleep between each ping (second)
-reset = 5000   # reset data plot after this time (Natural numbers)
-plottime = 10  # drow plot after this time (Natural numbers)
-http_server = True  # enable/disable web server
-http_port = 8000  # http port
-gpiomode = False  # enable on raspberrypi (True/Flase)
-greenpin = 7  # gpio pin conected to Green LED on BOARD mode
-redpin = 3  # gpio pin conected to Red LED on BOARD mode
-bluepin = 10  # gpio pin conected to Blue LED on BOARD mode
-
+filewrite(
+    log_file,
+    'a',
+    '\n\t PiPing raised up\n' + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
 if gpiomode:
+    filewrite(log_file, 'a', 'Mode: GPIO MODE')
     import RPi.GPIO as GPIO  # Import GPIO library
 
 
@@ -57,7 +39,8 @@ if gpiomode:
 def ping(hostname):
     try:
         # ping command
-        pingcmd = "ping -c 1 " + hostname + " | tail -1 | awk \'{print $4}\' | cut -d '/' -f 2 "
+        pingcmd = "ping -c 1 " + hostname + \
+            " | tail -1 | awk \'{print $4}\' | cut -d '/' -f 2 "
         # get ping stdout
         response = subprocess.run(pingcmd, shell=True, stdout=subprocess.PIPE)
         pingresponse = response.stdout.decode('utf-8')
@@ -67,12 +50,12 @@ def ping(hostname):
             pingtimenum = int(pingtime)
             return pingtimenum
         else:
-            print('Error while pinging!')
+            filewrite(log_file, 'a', '\nE: Error while pinging!')
             return None
 
     # Error in pinging
-    except:
-        print('Error while pinging!')
+    except Exception as e:
+        filewrite(log_file, 'a', '\nE: Error while pinging ' + e)
         return None
 
 
@@ -87,8 +70,9 @@ def net_status(net_status_server):
                 return False
                 if gpiomode:
                     blink(redpin, 0.3, 2)
-        except:
+        except Exception as e:
                 return False
+                filewrite(log_file, 'a', '\nE: No Connection ' + e)
 
 
 def blink(pin, timeon, number):
@@ -117,13 +101,13 @@ if __name__ == '__main__':
     cplot = []
     n = 0
 
+
     if http_server:
         # add http handler
         Handler = http.server.SimpleHTTPRequestHandler
         # run http server on port
         HttpThread().start()
-        print('see plot on http://localhost:' + str(http_port))
-
+        filewrite(log_file, 'a', '\nplot on http://localhost:' + str(http_port))
     while True:
         time.sleep(sleeptime)
 
@@ -154,7 +138,7 @@ if __name__ == '__main__':
                     blink(bluepin, 0.3, 1)
 
             else:
-                print('server type Error')
+                filewrite(log_file, 'a', '\nE: Server type error ')
 
         if n % plottime == 0:
             plotdata.clear()
@@ -178,7 +162,7 @@ if __name__ == '__main__':
 
             # drow plot
             plot = plotly.offline.plot(plotinput, filename='index.html', auto_open=False)
-            print('plot: ' + plot)
+            filewrite(log_file, 'a', '\nPlot: ' + plot)
 
             if n % reset == 0:
                 for server in serverslist:

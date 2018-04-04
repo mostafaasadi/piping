@@ -1,4 +1,4 @@
-# About piping
+# About PiPing
 This is a Python script which pings your desired IPs and generates a plot, showing target up-time based on received replies.
 The plot is generated as a standard HTML file which is view-able in any standard web browser.
 Furthermore, if you are running this script on RaspberryPi or compatible SBC, it is possible to connect an RGB LED to RPi's GPIO
@@ -14,9 +14,37 @@ user configurable.
 - `git clone https://github.com/mostafaasadi/piping`
 - `cd piping`
 - `nohup python3 piping.py &`
+- you can also create systemd unit to manage PiPing:
+
+ - make `/etc/systemd/system/piping.service` with the following contents
+
+   for first run: `sudo systemctl daemon-reload `
+
+   and manage with :
+
+   `sudo systemctl enable`
+   `sudo systemctl start`
+   `sudo systemctl stop`
+
+
+```
+[Unit]
+Description=PiPing service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /home/mostafa/piping/piping.py
+WorkingDirectory=/home/mostafa/piping
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=sysinit.target
+```
+
 
 # Configuration
-To change IPs (add/remove/edit) line 25-32
+To change IPs (add/remove/edit) `config.py`
 ```
 name = servers(
 'server name',
@@ -24,10 +52,10 @@ name = servers(
 'ping in offline/online',
 'enable GPIO (on raspberrypi) check with condition True/False (recommanded: enable for IPs outside your LAN)')
 ```
-and other configurations (line 34-43).
+and other configurations.
 
 ## RaspberryPi GPIO activation
-If you are running piping on RaspberryPi, enable `gpiomode` on line 40. Then connect RGB LED according to this diagram:
+If you are running piping on RaspberryPi, enable `gpiomode` on `config.py`. Then connect RGB LED according to this diagram:
 ![piping](https://raw.githubusercontent.com/mostafaasadi/piping/master/physical-pin-numbers.png)
 finally set `redpin`,`greenpin` and `bluepin` in configuration section.
 
